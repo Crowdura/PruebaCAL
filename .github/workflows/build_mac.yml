@@ -1,0 +1,50 @@
+name: Compilar ejecutable para macOS
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:  # Permite ejecutar la compilación manualmente desde GitHub
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+    - name: Descargar el código fuente
+      uses: actions/checkout@v3
+
+    - name: Configurar Python 3.13
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+
+    - name: Instalar dependencias
+      run: |
+        python -m pip install --upgrade pip
+        pip install customtkinter matplotlib pyinstaller
+
+    - name: Generar paquete .app con PyInstaller
+      run: |
+        python -m PyInstaller --noconfirm --onedir --windowed --collect-all customtkinter main.py
+
+    - name: Instalar herramienta create-dmg
+      run: brew install create-dmg
+
+    - name: Empaquetar en archivo .dmg (Instalador)
+      run: |
+        create-dmg \
+          --volname "Calculo Diferencial" \
+          --window-pos 200 120 \
+          --window-size 800 400 \
+          --icon-size 100 \
+          --icon "main.app" 200 190 \
+          --hide-extension "main.app" \
+          --app-drop-link 600 190 \
+          "Instalador_CalculoDiferencial_macOS.dmg" \
+          "dist/main.app"
+
+    - name: Guardar instalador ejecutable como artefacto
+      uses: actions/upload-artifact@v3
+      with:
+        name: Instalador-macOS
+        path: Instalador_CalculoDiferencial_macOS.dmg
